@@ -1,0 +1,147 @@
+---
+title: "Developer Salaries and AI Use: Three Country Comparison."
+subtitle: "Developer Salaries and AI Adoption in South Africa, Germany, and the UK"
+author: "Hannah"
+format:
+  html:
+    embed-resources: true
+    toc: true
+    theme: cosmo
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+# [**Do Developers in Germany and the UK Earn More Than Those in South Africa?**]{.underline}
+
+I compared salary and AI tool adoption between Germany, United Kingdom, and South Africa.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+so <- read.csv("so_developers_2024.csv")
+
+countries <- c("South Africa", "Germany", "United Kingdom")
+
+analysis <- so %>%
+  filter(country %in% countries,
+         !is.na(salary_usd))
+
+analysis$salary_k <- analysis$salary_usd / 1000
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+
+# Calculate sample sizes and mean salaries
+salary_stats <- analysis %>%
+  group_by(country) %>%
+  summarise(
+    n = n(),
+    mean_salary = mean(salary_usd),
+  )
+
+# Attach summary statistics to the original data
+box_data <- analysis %>%
+  left_join(salary_stats, by = "country")
+
+# Create the box plot
+p1 <- ggplot(
+  box_data,
+  aes(
+    x = country,
+    y = salary_usd,
+    text = paste0(
+      "Country: ", country,
+      "<br>Mean salary: $", round(mean_salary, 0),
+      "<br>Sample size: ", n
+    )
+  )
+) +
+  geom_boxplot(fill = "pink") +
+  labs(
+    title = "UK Developers Report Higher Salaries Than Germany and South Africa.",
+    x = "Country",
+    y = "Annual Salary (USD)"
+  ) +
+  scale_y_continuous(labels = scales::label_dollar()) +
+  theme_minimal()
+
+# Make interactive
+ggplotly(p1, tooltip = "text")
+```
+
+## AI Tool Adoption
+
+```{r}
+#As precentage of sample
+ai_data <- so %>%
+  filter(
+    country %in% countries,
+    !is.na(ai_select)
+  ) %>%
+  group_by(country) %>%
+  summarise(
+    ai_use_pct = mean(ai_select == "Yes") * 100,
+    n = n(),
+    .groups = "drop"
+  )
+
+# Create the bar chart
+bar_chart_ai_usage <- ggplot(
+  ai_data,
+  aes(
+    x = ai_use_pct,
+    y = reorder(country, ai_use_pct),
+    text = paste0(
+      "Country: ", country,
+      "<br>AI adoption: ", round(ai_use_pct, 1), "%",
+      "<br>Sample size: ", n
+    )
+  )
+) +
+  geom_col(fill = "steelblue") +
+  scale_x_continuous(limits = c(0, 100)) +
+  labs(
+    title = "South Africa Reports the Highest AI Tool Adoption",
+    x = "Developers Using AI Tools (%)",
+    y = "Country"
+  ) +
+  theme_minimal()
+
+# Make interactive
+ggplotly(bar_chart_ai_usage, tooltip = "text")
+
+```
+
+What I found and why it matters
+
+Using the Stack Overflow Developer Survey from 2024 I found that developer profiles including salary and AI tool usage varies between all three countries. When it comes to pay the UK reported the highest average annual salary (\$97,816), followed by Germany (\$78,079) and South Africa (\$54,185).
+
+When it comes to AI tool adoption South Africa had the adoption rate (67.6%), compared with Germany (57.8%) and the UK (52.7%). This contrast shows that the country with the highest reported AI adoption did not have the highest average salary in this sample.
+
+How I know
+
+I used the Stack Overflow Developer Survey, looking at just respondents from UK, South Africa and Germany. After removing missing salary values I compared the average salaries using Welch's ANOVA because the salary variances were unequal finding statistically significant difference in mean salaries. The Games–Howell found significant differences between each pair of countries.
+
+For self reported AI tool usage I calculated the percentage or participants who reported using an AI tool.
+
+Limitations:
+
+- The data does not come from a random sample, rather a survey so this sample is not the most reliable representation.
+
+- AI tool adoption is self reported and simply a yes or no, not capturing capture how frequently or for what purposes developers use AI. Therefore, differences in reported use should not be interpreted as differences in the effectiveness of AI adoption.
+
+- Salaries were converted to USD which does not account for differences in living costs or purchasing power across the 3 different countries.
+
+Stack Overflow 2024 Developer Survey (ODbL). Project for DSAN 5100, Georgetown University M.S. in Data Science & Analytics.
+
+## About the Author
+
+Hannah: MS in Data Science and Analytics, Georgetown University.
+
+[Connect with me on LinkedIn](https://www.linkedin.com/in/hannah-ghebrelul-a4642b275/)
